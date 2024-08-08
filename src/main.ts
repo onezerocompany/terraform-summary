@@ -1,5 +1,8 @@
 import * as core from '@actions/core'
-import { wait } from './wait'
+import { readFileSync } from 'fs'
+import { markdown_plan } from './markdown_plan'
+import { resolve } from 'path'
+import { generate_plan } from './generate_plan'
 
 /**
  * The main function for the action.
@@ -7,18 +10,18 @@ import { wait } from './wait'
  */
 export async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
+    const folders = core.getInput('folders')
 
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
-
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
+    let markdown = '## Terraform summary:\n\n'
+    for (const folder of folders) {
+      markdown += `### ${folder}\n\`\`\`\n`
+      const absolute = resolve(process.cwd(), folder)
+      console.log(`Processing: ${absolute}`)
+      const plan = await generate_plan(absolute)
+      markdown += `${markdown_plan(plan)}\n\n`
+      markdown += '```\n\n'
+    }
+    core.setOutput('summary', markdown)
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)
