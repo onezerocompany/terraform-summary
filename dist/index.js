@@ -30432,19 +30432,21 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.generate_plan = generate_plan;
 const exec_1 = __nccwpck_require__(1514);
 const fs_1 = __nccwpck_require__(7147);
-const promises_1 = __nccwpck_require__(3292);
 async function generate_plan(folder) {
     if (!(0, fs_1.existsSync)(folder)) {
         throw new Error(`The folder ${folder} does not exist.`);
     }
     await (0, exec_1.exec)('terraform', ['init'], { cwd: folder });
     await (0, exec_1.exec)('terraform', ['plan', '-out=tfplan'], { cwd: folder });
-    await (0, exec_1.exec)('terraform', ['show', '-json', 'tfplan', '>', 'tfplan.json'], {
-        cwd: folder
+    let plan = '';
+    await (0, exec_1.exec)('terraform', ['show', '-json', 'tfplan'], {
+        cwd: folder,
+        listeners: {
+            stdout: (data) => {
+                plan += data.toString();
+            }
+        }
     });
-    if (!(0, fs_1.existsSync)(`${folder}/tfplan.json`))
-        throw new Error('Failed to generate plan');
-    const plan = await (0, promises_1.readFile)(`${folder}/tfplan.json`, 'utf8');
     return JSON.parse(plan);
 }
 
@@ -30639,14 +30641,6 @@ module.exports = require("events");
 
 "use strict";
 module.exports = require("fs");
-
-/***/ }),
-
-/***/ 3292:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs/promises");
 
 /***/ }),
 

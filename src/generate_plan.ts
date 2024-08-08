@@ -9,12 +9,14 @@ export async function generate_plan(folder: string): Promise<any> {
 
   await exec('terraform', ['init'], { cwd: folder })
   await exec('terraform', ['plan', '-out=tfplan'], { cwd: folder })
-  await exec('terraform', ['show', '-json', 'tfplan', '>', 'tfplan.json'], {
-    cwd: folder
+  let plan = ''
+  await exec('terraform', ['show', '-json', 'tfplan'], {
+    cwd: folder,
+    listeners: {
+      stdout: (data: Buffer) => {
+        plan += data.toString()
+      }
+    }
   })
-
-  if (!existsSync(`${folder}/tfplan.json`))
-    throw new Error('Failed to generate plan')
-  const plan = await readFile(`${folder}/tfplan.json`, 'utf8')
   return JSON.parse(plan)
 }
