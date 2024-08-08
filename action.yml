@@ -3,6 +3,10 @@ description: 'Generate a summary of Terraform plan on your PR'
 author: 'OneZero Company'
 
 inputs:
+  github-token:
+    description: 'The GitHub token'
+    required: true
+    default: ${{ github.token }}
   folders:
     description: 'The folders to run terraform plan on'
     required: true
