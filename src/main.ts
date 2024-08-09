@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { DefaultArtifactClient } from '@actions/artifact'
 
-import { markdown_plan } from './markdown_plan'
+import { has_changes, markdown_plan } from './markdown_plan'
 import { resolve } from 'path'
 import { generate_plan } from './generate_plan'
 import { writeFileSync } from 'fs'
@@ -26,20 +26,28 @@ export async function run(): Promise<void> {
       .flatMap(folder => folder.split(','))
 
     const id = '<!-- terraform-plan -->'
+    var changes_detected = false
     let markdown = `${id}\n## Terraform changes:\n\n`
     let raw = ''
     for (const folder of folders) {
-      markdown += `### ${folder}\n\`\`\`\n`
       const absolute = resolve(process.cwd(), folder)
-      console.log(`Processing: ${absolute}`)
       const plan = await generate_plan(absolute)
-      markdown += markdown_plan(plan.json)
-      raw += `${folder}\n${plan.text}`
-      markdown += '\n```\n\n'
+      if (has_changes(plan.json)) {
+        markdown += `### ${folder}\n\`\`\`\n`
+        markdown += markdown_plan(plan.json)
+        raw += `${folder}\n${plan.text}`
+        markdown += '\n```\n\n'
+        changes_detected = true
+      } else {
+        changes_detected = false
+      }
+    }
+
+    if (!changes_detected) {
+      markdown += 'No changes detected.'
     }
 
     writeFileSync('full_log.txt', raw)
-
     const client = github.getOctokit(core.getInput('github-token'))
     const artifact = new DefaultArtifactClient()
     const upload = await artifact.uploadArtifact(
@@ -57,7 +65,7 @@ export async function run(): Promise<void> {
         repo: github.context.repo.repo,
         artifact_id: upload.id
       })
-    ).data.archive_download_url
+    ).data.url
 
     markdown += `Full log: [full_log.txt](${url})`
 

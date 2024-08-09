@@ -32,3 +32,9 @@ export function markdown_plan(plan: Plan): string {
   }
   return markdown.trim()
 }
+
+export function has_changes(plan: Plan): boolean {
+  return plan.resource_changes.some((change: ResourceChange) =>
+    change.change.actions.some((action: string) => actions[action])
+  )
+}
