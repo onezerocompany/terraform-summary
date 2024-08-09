@@ -46,7 +46,7 @@ export async function run(): Promise<void> {
     }
 
     if (!changes_detected) {
-      markdown += 'No changes detected.'
+      markdown += 'No changes detected.\n\n'
     }
 
     writeFileSync('full_log.txt', raw)
@@ -60,7 +60,8 @@ export async function run(): Promise<void> {
     )
 
     if (upload.id) {
-      markdown += `Full log: [full_log.txt](https://github.com/silverswarm/silverswarm/actions/runs/${github.context.runNumber}/artifacts/${upload.id})`
+      const artifactUrl = `https://github.com/${github.context.repo.owner}/${github.context.repo.repo}/actions/runs/${github.context.runId}/artifacts/${upload.id}`
+      markdown += `[Click to see the full log](${artifactUrl})`
     }
 
     // find a comment with the id using rest api
