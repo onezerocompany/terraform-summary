@@ -48,7 +48,7 @@ export async function run(): Promise<void> {
     if (!upload.id) {
       throw new Error('Failed to upload artifact.')
     }
-    const url = await artifact.downloadArtifact(upload.id)
+    const url = (await artifact.downloadArtifact(upload.id)).downloadPath
 
     markdown += `Full log: [full_log.txt](${url})`
 
