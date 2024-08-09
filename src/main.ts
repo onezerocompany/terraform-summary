@@ -2,9 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { DefaultArtifactClient } from '@actions/artifact'
 
-import { has_changes, markdown_plan } from './markdown_plan'
-import { resolve } from 'path'
-import { generate_plan } from './generate_plan'
+import { plan } from './plan'
 import { writeFileSync } from 'fs'
 
 /**
@@ -13,86 +11,39 @@ import { writeFileSync } from 'fs'
  */
 export async function run(): Promise<void> {
   try {
-    const pr = github.context.payload.pull_request?.number
-    if (!pr) {
-      core.setFailed('This action can only be run on pull requests.')
-      return
+    const folder = core.getInput('folder').trim()
+    if (!folder) {
+      throw new Error('The folder input is required.')
     }
 
-    const folders = core
-      .getInput('folders')
-      .trim()
-      .split('\n')
-      .flatMap(folder => folder.split(','))
+    const output = await plan(folder)
+    let markdown = `### ${core.getInput('title')}\n\n`
+    if (output.has_changes) {
+      markdown += '```\n' + output.markdown + '\n```\n\n'
+    } else {
+      markdown += '```\nNo changes detected.\n```\n\n'
+    }
 
     const id = core.getInput('id')
-    const preamble = `<!-- terraform-plan:${id} -->`
-    var changes_detected = false
-    let title = core.getInput('title') ?? 'Terraform Plan'
-    let markdown = `${preamble}\n## ${title}\n\n`
-    let raw = ''
-    for (const folder of folders) {
-      const absolute = resolve(process.cwd(), folder)
-      const plan = await generate_plan(absolute)
-      raw += `${folder}\n${plan.text}`
-      if (has_changes(plan.json)) {
-        markdown += `### ${folder}\n\`\`\`\n`
-        markdown += markdown_plan(plan.json)
-        markdown += '\n```\n\n'
-        changes_detected = true
-      }
-    }
+    const log_file = `${id}_log.txt`
+    writeFileSync(log_file, output.log)
 
-    if (!changes_detected) {
-      markdown += 'No changes detected.\n\n'
-    }
-
-    writeFileSync('full_log.txt', raw)
-    const client = github.getOctokit(core.getInput('github-token'))
     const artifact = new DefaultArtifactClient()
     const upload = await artifact.uploadArtifact(
-      'full_log',
-      ['full_log.txt'],
+      log_file,
+      [log_file],
       process.cwd(),
       {}
     )
 
     if (upload.id) {
       const artifactUrl = `https://github.com/${github.context.repo.owner}/${github.context.repo.repo}/actions/runs/${github.context.runId}/artifacts/${upload.id}`
-      markdown += `[Click to see the full log](${artifactUrl})`
+      markdown += `[Read the full log](${artifactUrl})`
     }
 
-    // find a comment with the id using rest api
-    const comments = await client.rest.issues.listComments({
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      issue_number: pr,
-      per_page: 25
-    })
-
-    const comment = comments.data.find(comment =>
-      comment.body?.includes(preamble)
-    )
-
-    if (comment) {
-      // update the comment
-      await client.rest.issues.updateComment({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        comment_id: comment.id,
-        body: markdown
-      })
-    } else {
-      // create a new comment
-      await client.rest.issues.createComment({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        issue_number: pr,
-        body: `${markdown}\n${preamble}`
-      })
-    }
-
-    core.setOutput('summary', markdown)
+    core.setOutput('markdown', markdown)
+    core.setOutput('json', output.plan)
+    core.setOutput('has_changes', output.has_changes)
   } catch (error) {
     // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)
