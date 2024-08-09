@@ -53,9 +53,11 @@ export async function run(): Promise<void> {
     const upload = await artifact.uploadArtifact(
       'full_log',
       ['full_log.txt'],
-      process.cwd()
+      process.cwd(),
+      {}
     )
-    if (!upload.id) {
+
+    if (upload.id) {
       markdown += `Full log: [full_log.txt](https://github.com/silverswarm/silverswarm/actions/runs/${github.context.runNumber}/artifacts/${upload.id})`
     }
 
