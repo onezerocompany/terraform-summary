@@ -1,6 +1,5 @@
 import { exec } from '@actions/exec'
 import { existsSync } from 'fs'
-import { readFile } from 'fs/promises'
 
 export async function generate_plan(
   folder: string
@@ -9,10 +8,18 @@ export async function generate_plan(
     throw new Error(`The folder ${folder} does not exist.`)
   }
 
-  await exec('terraform', ['init'], { cwd: folder })
-  await exec('terraform', ['plan', '-out=tfplan'], { cwd: folder })
+  await exec('terraform', ['init', '-input=false', '-no-color'], {
+    cwd: folder
+  })
+  await exec(
+    'terraform',
+    ['plan', '-out=tfplan', '-no-color', '-input=false'],
+    {
+      cwd: folder
+    }
+  )
   let json_plan = ''
-  await exec('terraform', ['show', '-json', 'tfplan'], {
+  await exec('terraform', ['show', '-json', '-no-color', 'tfplan'], {
     cwd: folder,
     listeners: {
       stdout: (data: Buffer) => {
