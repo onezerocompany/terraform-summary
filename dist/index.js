@@ -30494,12 +30494,17 @@ const generate_plan_1 = __nccwpck_require__(8983);
  */
 async function run() {
     try {
+        const pr = github.context.payload.pull_request?.number;
+        if (!pr) {
+            core.setFailed('This action can only be run on pull requests.');
+            return;
+        }
         const folders = core
             .getInput('folders')
             .trim()
             .split('\n')
             .flatMap(folder => folder.split(','));
-        let markdown = '## Terraform summary:\n\n';
+        let markdown = '## Terraform changes:\n\n';
         for (const folder of folders) {
             markdown += `### ${folder}\n\`\`\`\n`;
             const absolute = (0, path_1.resolve)(process.cwd(), folder);
@@ -30508,31 +30513,34 @@ async function run() {
             markdown += (0, markdown_plan_1.markdown_plan)(plan);
             markdown += '\n```\n\n';
         }
-        // update the description of the pull request
-        // check for a <!-- terraform-plan:start --> comment
-        const body = github.context.payload.pull_request?.body ?? '';
-        const start = '<!-- terraform-plan:start -->';
-        const end = '<!-- terraform-plan:end -->';
-        const startIndex = body.indexOf(start);
-        const endIndex = body.indexOf(end);
-        let newBody = body;
-        if (startIndex !== -1 && endIndex !== -1) {
-            newBody =
-                body.substring(0, startIndex + start.length) +
-                    '\n\n' +
-                    markdown +
-                    body.substring(endIndex);
-        }
-        else {
-            newBody = `${body}\n\n${start}\n\n${markdown}\n\n${end}`;
-        }
+        const id = '<!-- terraform-plan -->';
         const client = github.getOctokit(core.getInput('github-token'));
-        await client.rest.issues.update({
+        // find a comment with the id using rest api
+        const comments = await client.rest.issues.listComments({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
-            issue_number: github.context.payload.pull_request?.number ?? 0,
-            body: newBody
+            issue_number: pr,
+            per_page: 25
         });
+        const comment = comments.data.find(comment => comment.body?.includes(id));
+        if (comment) {
+            // update the comment
+            await client.rest.issues.updateComment({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                comment_id: comment.id,
+                body: markdown
+            });
+        }
+        else {
+            // create a new comment
+            await client.rest.issues.createComment({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                issue_number: pr,
+                body: `${markdown}\n${id}`
+            });
+        }
         core.setOutput('summary', markdown);
     }
     catch (error) {
