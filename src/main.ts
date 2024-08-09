@@ -56,18 +56,8 @@ export async function run(): Promise<void> {
       process.cwd()
     )
     if (!upload.id) {
-      throw new Error('Failed to upload artifact.')
+      markdown += `Full log: [full_log.txt](https://github.com/silverswarm/silverswarm/actions/runs/${github.context.runNumber}/artifacts/${upload.id})`
     }
-
-    const url = (
-      await client.rest.actions.getArtifact({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        artifact_id: upload.id
-      })
-    ).data.url
-
-    markdown += `Full log: [full_log.txt](${url})`
 
     // find a comment with the id using rest api
     const comments = await client.rest.issues.listComments({
