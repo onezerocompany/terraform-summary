@@ -17,17 +17,18 @@ export async function run(): Promise<void> {
     }
 
     const output = await plan(folder)
-    let markdown = `### ${core.getInput('title')}\n\n`
+    var markdown = `### ${core.getInput('title')}\n\n`
+    markdown += '```\n'
     if (output.has_changes) {
-      markdown += '```\n' + output.markdown + '\n```\n\n'
+      markdown += output.markdown + '\n'
     } else {
-      markdown += '```\nNo changes detected.\n```\n\n'
+      markdown += 'no changes\n'
     }
+    markdown += '```\n'
 
     const id = core.getInput('id')
     const log_file = `${id}_log.txt`
     writeFileSync(log_file, output.log)
-
     const artifact = new DefaultArtifactClient()
     const upload = await artifact.uploadArtifact(
       log_file,
