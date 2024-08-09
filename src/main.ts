@@ -27,7 +27,8 @@ export async function run(): Promise<void> {
 
     const id = '<!-- terraform-plan -->'
     var changes_detected = false
-    let markdown = `${id}\n## Terraform changes:\n\n`
+    let title = core.getInput('title') ?? 'Terraform Plan'
+    let markdown = `${id}\n## ${title}\n\n`
     let raw = ''
     for (const folder of folders) {
       const absolute = resolve(process.cwd(), folder)

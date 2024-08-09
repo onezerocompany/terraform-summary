@@ -10,6 +10,9 @@ inputs:
   folders:
     description: 'The folders to run terraform plan on'
     required: true
+  title:
+    description: 'The title of the summary'
+    default: 'Terraform Plan'
 
 outputs:
   summary:
