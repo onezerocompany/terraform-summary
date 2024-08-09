@@ -18,13 +18,13 @@ export async function run(): Promise<void> {
 
     const output = await plan(folder)
     var markdown = `### ${core.getInput('title')}\n\n`
-    markdown += '```\n'
+    markdown += '\\`\\`\\`\n'
     if (output.has_changes) {
       markdown += output.markdown + '\n'
     } else {
       markdown += 'no changes\n'
     }
-    markdown += '```\n'
+    markdown += '\\`\\`\\`\n'
 
     const id = core.getInput('id')
     const log_file = `${id}_log.txt`
