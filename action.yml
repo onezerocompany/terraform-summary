@@ -7,7 +7,7 @@ inputs:
     description: 'The GitHub token'
     required: true
     default: ${{ github.token }}
-  folders:
+  folder:
     description: 'The folders to run terraform plan on'
     required: true
   title:
@@ -18,8 +18,12 @@ inputs:
     default: 'terraform-plan'
 
 outputs:
-  summary:
-    description: 'The summary of Terraform plan'
+  markdown:
+    description: 'The markdown content of the summary'
+  json:
+    description: 'The json content of the summary'
+  has_changes:
+    description: 'Whether the plan has changes'
 
 runs:
   using: node20
