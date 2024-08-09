@@ -1,8 +1,11 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { DefaultArtifactClient } from '@actions/artifact'
+
 import { markdown_plan } from './markdown_plan'
 import { resolve } from 'path'
 import { generate_plan } from './generate_plan'
+import { writeFileSync } from 'fs'
 
 /**
  * The main function for the action.
@@ -23,17 +26,35 @@ export async function run(): Promise<void> {
       .flatMap(folder => folder.split(','))
 
     let markdown = '## Terraform changes:\n\n'
+    let raw = ''
     for (const folder of folders) {
       markdown += `### ${folder}\n\`\`\`\n`
       const absolute = resolve(process.cwd(), folder)
       console.log(`Processing: ${absolute}`)
       const plan = await generate_plan(absolute)
-      markdown += markdown_plan(plan)
+      markdown += markdown_plan(plan.json)
+      raw += `${folder}\n${plan.text}`
       markdown += '\n```\n\n'
     }
 
+    writeFileSync('full_log.txt', raw)
+
+    const artifact = new DefaultArtifactClient()
+    const upload = await artifact.uploadArtifact(
+      'full_log',
+      ['full_log.txt'],
+      process.cwd()
+    )
+    if (!upload.id) {
+      throw new Error('Failed to upload artifact.')
+    }
+    const url = await artifact.downloadArtifact(upload.id)
+
+    markdown += `Full log: [full_log.txt](${url})`
+
     const id = '<!-- terraform-plan -->'
     const client = github.getOctokit(core.getInput('github-token'))
+
     // find a comment with the id using rest api
     const comments = await client.rest.issues.listComments({
       owner: github.context.repo.owner,
