@@ -26,7 +26,7 @@ export async function run(): Promise<void> {
       .flatMap(folder => folder.split(','))
 
     const id = '<!-- terraform-plan -->'
-    let markdown = `${id}## Terraform changes:\n\n`
+    let markdown = `${id}\n## Terraform changes:\n\n`
     let raw = ''
     for (const folder of folders) {
       markdown += `### ${folder}\n\`\`\`\n`
@@ -40,6 +40,7 @@ export async function run(): Promise<void> {
 
     writeFileSync('full_log.txt', raw)
 
+    const client = github.getOctokit(core.getInput('github-token'))
     const artifact = new DefaultArtifactClient()
     const upload = await artifact.uploadArtifact(
       'full_log',
@@ -49,10 +50,16 @@ export async function run(): Promise<void> {
     if (!upload.id) {
       throw new Error('Failed to upload artifact.')
     }
-    const url = (await artifact.downloadArtifact(upload.id)).downloadPath
+
+    const url = (
+      await client.rest.actions.getArtifact({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        artifact_id: upload.id
+      })
+    ).data.archive_download_url
 
     markdown += `Full log: [full_log.txt](${url})`
-    const client = github.getOctokit(core.getInput('github-token'))
 
     // find a comment with the id using rest api
     const comments = await client.rest.issues.listComments({
