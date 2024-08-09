@@ -25,7 +25,8 @@ export async function run(): Promise<void> {
       .split('\n')
       .flatMap(folder => folder.split(','))
 
-    let markdown = '## Terraform changes:\n\n'
+    const id = '<!-- terraform-plan -->'
+    let markdown = `${id}## Terraform changes:\n\n`
     let raw = ''
     for (const folder of folders) {
       markdown += `### ${folder}\n\`\`\`\n`
@@ -51,8 +52,6 @@ export async function run(): Promise<void> {
     const url = (await artifact.downloadArtifact(upload.id)).downloadPath
 
     markdown += `Full log: [full_log.txt](${url})`
-
-    const id = '<!-- terraform-plan -->'
     const client = github.getOctokit(core.getInput('github-token'))
 
     // find a comment with the id using rest api
