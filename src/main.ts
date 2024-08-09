@@ -42,6 +42,8 @@ export async function run(): Promise<void> {
       markdown += `[Read the full log](${artifactUrl})`
     }
 
+    writeFileSync('markdown.md', markdown)
+
     core.setOutput('markdown', markdown)
     core.setOutput('json', output.plan)
     core.setOutput('has_changes', output.has_changes)
