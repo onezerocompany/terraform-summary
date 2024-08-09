@@ -34,14 +34,12 @@ export async function run(): Promise<void> {
     for (const folder of folders) {
       const absolute = resolve(process.cwd(), folder)
       const plan = await generate_plan(absolute)
+      raw += `${folder}\n${plan.text}`
       if (has_changes(plan.json)) {
         markdown += `### ${folder}\n\`\`\`\n`
         markdown += markdown_plan(plan.json)
-        raw += `${folder}\n${plan.text}`
         markdown += '\n```\n\n'
         changes_detected = true
-      } else {
-        changes_detected = false
       }
     }
 
