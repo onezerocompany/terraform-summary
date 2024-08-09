@@ -22,8 +22,8 @@ export async function run(): Promise<void> {
       const absolute = resolve(process.cwd(), folder)
       console.log(`Processing: ${absolute}`)
       const plan = await generate_plan(absolute)
-      markdown += `${markdown_plan(plan)}\n\n`
-      markdown += '```\n\n'
+      markdown += markdown_plan(plan)
+      markdown += '\n```\n\n'
     }
 
     // update the description of the pull request

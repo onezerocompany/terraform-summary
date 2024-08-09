@@ -30505,8 +30505,8 @@ async function run() {
             const absolute = (0, path_1.resolve)(process.cwd(), folder);
             console.log(`Processing: ${absolute}`);
             const plan = await (0, generate_plan_1.generate_plan)(absolute);
-            markdown += `${(0, markdown_plan_1.markdown_plan)(plan)}\n\n`;
-            markdown += '```\n\n';
+            markdown += (0, markdown_plan_1.markdown_plan)(plan);
+            markdown += '\n```\n\n';
         }
         // update the description of the pull request
         // check for a <!-- terraform-plan:start --> comment
