@@ -25,10 +25,11 @@ export async function run(): Promise<void> {
       .split('\n')
       .flatMap(folder => folder.split(','))
 
-    const id = '<!-- terraform-plan -->'
+    const id = core.getInput('id')
+    const preamble = `<!-- terraform-plan:${id} -->`
     var changes_detected = false
     let title = core.getInput('title') ?? 'Terraform Plan'
-    let markdown = `${id}\n## ${title}\n\n`
+    let markdown = `${preamble}\n## ${title}\n\n`
     let raw = ''
     for (const folder of folders) {
       const absolute = resolve(process.cwd(), folder)
@@ -70,7 +71,9 @@ export async function run(): Promise<void> {
       per_page: 25
     })
 
-    const comment = comments.data.find(comment => comment.body?.includes(id))
+    const comment = comments.data.find(comment =>
+      comment.body?.includes(preamble)
+    )
 
     if (comment) {
       // update the comment
@@ -86,7 +89,7 @@ export async function run(): Promise<void> {
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         issue_number: pr,
-        body: `${markdown}\n${id}`
+        body: `${markdown}\n${preamble}`
       })
     }
 
